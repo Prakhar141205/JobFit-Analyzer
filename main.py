@@ -24,18 +24,18 @@ def get_grade(score):
 
 # Page SEtup
 
-st.set_page_config(page_title = "Resume Screening Engine", page_icon="🤖")
-st.title(":rainbow[**AI Powered Resume Screening Engine**]")
+st.set_page_config(page_title = "Semantic JobFit Analyzer", page_icon="🤖")
+st.title(f":blue[**Semantic JobFit Analyzer**]")
 st.write("Upload a resume and paste a job description to get the similarity score!")
 st.caption("**Note:** :green[Add Job Title for better results!]")
 
 # Header & Sidebar for Job Description
 st.header("Upload Resume")
 # st.sidebar.header(":rainbow[**Job Title**]")
-st.sidebar.header(":rainbow[**Job Title**  &  **Job Description**]")
+st.sidebar.header(":blue[**Job Title**  &  **Job Description**]")
 
 # take input of Job description and resume
-job_title= st.sidebar.text_input("**Enter full form of job title: **", placeholder = "Enter Exact or similar job title")
+job_title= st.sidebar.text_input("Enter full form of job title: ", placeholder = "Enter Exact or similar job title")
 job_description = st.sidebar.text_area("Enter job descrition here: ", height=500)
 
 uploaded_files = st.file_uploader("Choose a file", type= ['pdf'], accept_multiple_files=True)

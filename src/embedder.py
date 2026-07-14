@@ -2,7 +2,7 @@ import os
 from sentence_transformers import SentenceTransformer
 import streamlit as st
 
-MODEL_PATH = os.path.join("models", "embedding_model")
+MODEL_PATH = os.path.join("./src/models", "embedding_model")
 
 
 @st.cache_resource
