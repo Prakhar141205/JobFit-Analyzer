@@ -1,5 +1,4 @@
 import re
-import time
 
 def preprocessing(content):
     try:
@@ -19,4 +18,4 @@ def preprocessing(content):
         return content
     
     except Exception as e:
-        return f"Some error occurred {e}!"
+        raise ValueError(f"Error during preprocessing: {e}") from e

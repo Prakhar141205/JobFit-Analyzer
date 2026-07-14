@@ -7,8 +7,20 @@ from src.similarity_score import similarity_score
 from src.ranker import rank_files
 from src.skill_extractor import missing_skill_keyword
 
-import os, time
+GRADE_STRONG_MATCH = "Strong Match"
+GRADE_QUALIFIED = "Qualified"
+GRADE_WEAK_MATCH = "Weak Match/Recheck Resume"
+GRADE_NO_MATCH = "No Match!"
 
+def get_grade(score):
+    if score >= 0.80:
+        return GRADE_STRONG_MATCH
+    elif score >= 0.60:
+        return GRADE_QUALIFIED
+    elif score >= 0.40:
+        return GRADE_WEAK_MATCH
+    else:
+        return GRADE_NO_MATCH
 
 # Page SEtup
 
@@ -31,60 +43,47 @@ uploaded_files = st.file_uploader("Choose a file", type= ['pdf'], accept_multipl
 
 if st.button("Calculate Matching Score"):
     if uploaded_files and job_description:
-
-        file_scores = {'File': [], 'Scores': [], 'Grade': []}
         with st.spinner("Processing"):
             processed_job_desc = preprocessing(job_description)
+            embed_job_descr = get_embedding(processed_job_desc)
 
-            # file parsing
+            results = []
+            resume_contents = []
+            file_names = []
 
             for file in uploaded_files:
-                # parsing the input file
-                content = pdf_file_parser(file)
+                try:
+                    content = pdf_file_parser(file)
+                    processed_content = preprocessing(content)
+                    resume_contents.append(processed_content)
+                    file_names.append(file.name)
+                except Exception as e:
+                    st.error(f"Error processing {file.name}: {e}")
+            
+            if resume_contents:
+                embed_resume_files = get_embedding(resume_contents)
+                matching_scores = similarity_score(embed_resume_files, embed_job_descr)
 
-                # processing the file content
+                for i, file_name in enumerate(file_names):
+                    percentage = round(matching_scores[i][0] * 100, 2)
+                    grade = get_grade(matching_scores[i][0])
 
-                file_content_processed = preprocessing(content)
+                    results.append({'File': file_name, 'Scores': percentage, 'Grade': grade})
 
-                # get embedding
+                    # extracting resume skills and missing skills
+                    resume_skills_found, missing_skills = missing_skill_keyword(job_title, processed_job_desc, resume_contents[i])
 
-                embed_resume_file = get_embedding(file_content_processed)
-                embed_job_descr = get_embedding(processed_job_desc)
+                    with st.expander(f"Skills details for **{file_name}** (**Score: {percentage}%**, **Grade: {grade}** )"):
+                        st.write(f"**Skills found: ** {', '.join(resume_skills_found).title()}")
+                        if missing_skills:
+                            st.warning(f"**Missing Skills:** {', '.join(missing_skills).title()}")
+                        else:
+                            st.success("All required skills found.")
 
-                matching_score = similarity_score(embed_resume_file, embed_job_descr)
-                percentage = round(matching_score[0][0] * 100 , 3)
-
-                # ranking file according to score
-                file_scores['File'].append(file.name)
-                file_scores['Scores'].append(percentage)
-
-                if matching_score[0][0] >= 0.80:
-                    file_scores["Grade"].append("Strong Match")
-                elif (matching_score[0][0] >= 0.60) and (matching_score[0][0] < 0.80):
-                    file_scores["Grade"].append("Qualified")
-                elif (matching_score[0][0] >= 0.40) and (matching_score[0][0] < 0.60):
-                    file_scores["Grade"].append("Weak Match/Recheck Resume")
-                else:
-                    file_scores["Grade"].append("No Match!")
-
-
-                # extracting resume skills and missing skills
-
-                resume_skills_found, missing_skills = missing_skill_keyword(job_title, processed_job_desc, file_content_processed)
-
-                with st.expander(f"Skills details for **{file.name}** (**Score: {percentage}%**)"):
-                    st.write(f"**Skills found: ** {', '.join(resume_skills_found).title()}")
-                    if missing_skills:
-                        st.warning(f"**Missing Skills:** {', '.join(missing_skills).title()}")
-                    else:
-                        st.success("All required skills found.")
         st.success("Analysis complete")
-        ranking_pdf = rank_files(file_scores)
+        ranking_pdf = rank_files(results)
         st.dataframe(ranking_pdf, use_container_width = True)
         st.snow()
 
     else:
         st.warning("Please upload both **Resume** and **Job descriptions**!")
-
-
-
